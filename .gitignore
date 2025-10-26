@@ -177,9 +177,10 @@ dist/
 # Temporary development files
 *_CHECKLIST.md
 *_READY_*.md
-*_SUMMARY.md
 *_FINAL.md
 *_PUSH_*.md
+# Allow phase summaries
+PHASE*_SUMMARY.md
 
 # Backup files
 *.bak
