@@ -831,18 +831,23 @@ class QuickSettingsTab(QWidget):
         self.load_settings()
     
     def setup_ui(self):
+        """Setup the Quick Settings UI with improved layout and spacing."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)  # Better margins for breathing room
-        layout.setSpacing(20)  # Better spacing between sections
+        layout.setContentsMargins(24, 24, 24, 24)  # Consistent margins
+        layout.setSpacing(24)  # Consistent spacing
         
-        # Header with better styling
+        # Header with improved styling
         header = QLabel("⚡ Quick Settings")
         header.setStyleSheet("""
-            font-size: 28px; 
+            font-size: 32px; 
             font-weight: bold; 
             color: #ffffff; 
-            margin-bottom: 16px;
-            padding: 8px 0px;
+            margin-bottom: 20px;
+            padding: 16px 0px;
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #4a90e2, stop:1 #357abd);
+            border-radius: 12px;
+            text-align: center;
         """)
         layout.addWidget(header)
         
@@ -856,7 +861,7 @@ class QuickSettingsTab(QWidget):
         """)
         
         presets_layout = QHBoxLayout(presets_container)
-        presets_layout.setSpacing(24)  # Increased spacing between cards
+        presets_layout.setSpacing(28)  # Increased spacing between cards
         presets_layout.setContentsMargins(0, 0, 0, 0)
         
         self.preset_cards = {}
@@ -1355,18 +1360,23 @@ class GraphicsTab(QWidget):
         self.load_settings()
     
     def setup_ui(self):
+        """Setup the Graphics Settings UI with improved layout and spacing."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)  # Better margins
-        layout.setSpacing(20)  # Better spacing between sections
+        layout.setContentsMargins(24, 24, 24, 24)  # Consistent margins
+        layout.setSpacing(24)  # Consistent spacing
         
-        # Header with better styling
+        # Header with improved styling
         header = QLabel("🎨 Graphics Settings")
         header.setStyleSheet("""
-            font-size: 28px; 
+            font-size: 32px; 
             font-weight: bold; 
             color: #ffffff; 
-            margin-bottom: 16px;
-            padding: 8px 0px;
+            margin-bottom: 20px;
+            padding: 16px 0px;
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #e74c3c, stop:1 #c0392b);
+            border-radius: 12px;
+            text-align: center;
         """)
         layout.addWidget(header)
         
@@ -1737,22 +1747,24 @@ class BackupTab(QWidget):
         self.refresh_backups()
 
     def setup_ui(self):
+        """Setup the Backup Management UI with improved layout and spacing."""
         # Main layout with proper spacing
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
+        layout.setContentsMargins(24, 24, 24, 24)  # Consistent margins
+        layout.setSpacing(20)  # Consistent spacing
 
-        # Header section
+        # Header section with improved styling
         header = QLabel("💾 Backup Management")
         header.setStyleSheet("""
-            font-size: 18px;
+            font-size: 32px;
             font-weight: bold;
             color: #ffffff;
-            margin-bottom: 8px;
-            padding: 8px;
-            background-color: #2a2a2a;
-            border-radius: 4px;
-            border: 1px solid #444;
+            margin-bottom: 20px;
+            padding: 16px 0px;
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #28a745, stop:1 #1e7e34);
+            border-radius: 12px;
+            text-align: center;
         """)
         layout.addWidget(header)
 
@@ -2312,52 +2324,43 @@ class MainWindow(QMainWindow):
         log_info("FieldTuner MainWindow initialized successfully", "MAIN")
     
     def setup_ui(self):
-        """Setup the super slick UI."""
+        """Setup the super slick UI with improved layout and spacing."""
         self.setWindowTitle("FieldTuner - Battlefield 6 Configuration Tool")
         self.setGeometry(100, 100, 1400, 900)
         self.setMinimumSize(1200, 800)  # Better minimum size for proper layout
         self.setMaximumSize(2000, 1400)  # Prevent excessive scaling
         self.resize(1400, 900)  # Better default size
         
-        # Central widget with scrolling
+        # Central widget with improved layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        # Create scroll area
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setWidget(central_widget)
-        
-        # Set scroll area as central widget
-        self.setCentralWidget(scroll_area)
-        
-        # Main layout - responsive spacing with proper margins
+        # Main layout with consistent spacing and margins
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(16, 16, 16, 100)  # Bottom margin for floating buttons
-        main_layout.setSpacing(12)  # Better spacing between elements
+        main_layout.setContentsMargins(20, 20, 20, 120)  # Increased margins for better breathing room
+        main_layout.setSpacing(16)  # Consistent spacing between elements
         main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)  # Align content to top
         
         # Store reference to main layout for later use
         self.main_layout = main_layout
         
-        # Header with responsive design
+        # Header with improved responsive design
         header_widget = QWidget()
-        header_widget.setMinimumHeight(60)
-        header_widget.setMaximumHeight(80)
+        header_widget.setMinimumHeight(70)
+        header_widget.setMaximumHeight(90)
         header_widget.setStyleSheet("""
             QWidget {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #2a2a2a, stop:1 #333);
-                border-radius: 8px;
-                margin: 0px 0px 8px 0px;
+                border-radius: 12px;
+                margin: 0px 0px 12px 0px;
+                border: 1px solid #444;
             }
         """)
         
         header_layout = QHBoxLayout(header_widget)
-        header_layout.setContentsMargins(16, 12, 16, 12)
-        header_layout.setSpacing(16)
+        header_layout.setContentsMargins(24, 16, 24, 16)
+        header_layout.setSpacing(20)
         
         # Integrated logo and title branding
         branding_widget = QWidget()
@@ -2503,32 +2506,40 @@ class MainWindow(QMainWindow):
         self.tab_widget = QTabWidget()
         self.tab_widget.setStyleSheet("""
             QTabWidget::pane {
-                border: 1px solid #444;
+                border: 2px solid #444;
                 background-color: #1e1e1e;
-                border-radius: 8px;
-                margin-top: -1px;
+                border-radius: 12px;
+                margin-top: -2px;
+                padding: 4px;
             }
             QTabBar::tab {
                 background-color: #2a2a2a;
                 color: #ffffff;
-                padding: 14px 24px;
-                margin-right: 3px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-                font-size: 14px;
+                padding: 16px 28px;
+                margin-right: 4px;
+                border-top-left-radius: 12px;
+                border-top-right-radius: 12px;
+                font-size: 15px;
                 font-weight: bold;
-                min-width: 120px;
+                min-width: 140px;
+                border: 1px solid #444;
+                border-bottom: none;
             }
             QTabBar::tab:selected {
                 background-color: #4a90e2;
                 color: white;
-                border-bottom: 2px solid #4a90e2;
+                border-bottom: 3px solid #4a90e2;
+                border-color: #4a90e2;
             }
             QTabBar::tab:hover:!selected {
-                background-color: #444;
+                background-color: #3a3a3a;
+                border-color: #666;
             }
             QTabBar::tab:first {
                 margin-left: 0px;
+            }
+            QTabBar {
+                alignment: left;
             }
         """)
         
@@ -2617,76 +2628,146 @@ class MainWindow(QMainWindow):
     
     
     def apply_super_slick_theme(self):
-        """Apply super slick theme."""
+        """Apply enhanced super slick theme with improved colors and typography."""
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #1e1e1e;
+                background-color: #1a1a1a;
                 color: #ffffff;
+                font-family: 'Segoe UI', 'Arial', sans-serif;
             }
             QGroupBox {
                 font-weight: bold;
                 color: #ffffff;
-                border: 1px solid #444;
-                border-radius: 8px;
-                margin-top: 15px;
-                padding-top: 15px;
+                border: 2px solid #444;
+                border-radius: 12px;
+                margin-top: 18px;
+                padding-top: 18px;
                 background-color: #2a2a2a;
+                font-size: 14px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
-                left: 15px;
-                padding: 0 8px 0 8px;
-                font-size: 14px;
+                left: 18px;
+                padding: 0 10px 0 10px;
+                font-size: 15px;
+                font-weight: bold;
             }
             QLabel {
                 color: #ffffff;
+                font-size: 13px;
             }
             QCheckBox {
                 color: #ffffff;
+                font-size: 13px;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 9px;
+                border: 2px solid #666;
+                background-color: #333;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #4a90e2;
+                border-color: #4a90e2;
             }
             QComboBox {
                 background-color: #333;
                 color: white;
-                border: 1px solid #555;
-                padding: 6px 10px;
-                border-radius: 4px;
-                min-width: 100px;
-                font-size: 12px;
+                border: 2px solid #555;
+                padding: 8px 12px;
+                border-radius: 8px;
+                min-width: 120px;
+                font-size: 13px;
+                font-weight: 500;
             }
             QComboBox::drop-down {
                 border: none;
-                width: 16px;
+                width: 20px;
             }
             QComboBox::down-arrow {
-                width: 10px;
-                height: 10px;
+                width: 12px;
+                height: 12px;
             }
             QComboBox:hover {
                 border-color: #777;
+                background-color: #3a3a3a;
             }
             QComboBox:focus {
                 border-color: #4a90e2;
+                background-color: #3a3a3a;
             }
             QSlider::groove:horizontal {
                 border: 1px solid #555;
-                height: 6px;
+                height: 8px;
                 background: #333;
-                border-radius: 3px;
+                border-radius: 4px;
             }
             QSlider::handle:horizontal {
                 background: #4a90e2;
-                border: 1px solid #555;
-                width: 16px;
-                margin: -5px 0;
-                border-radius: 8px;
+                border: 2px solid #555;
+                width: 20px;
+                margin: -6px 0;
+                border-radius: 10px;
             }
             QSlider::handle:horizontal:hover {
                 background: #357abd;
+                border-color: #4a90e2;
+            }
+            QSlider::handle:horizontal:pressed {
+                background: #2c5aa0;
             }
             QStatusBar {
                 background-color: #2a2a2a;
                 color: #ffffff;
-                border-top: 1px solid #444;
+                border-top: 2px solid #444;
+                font-size: 12px;
+                font-weight: 500;
+            }
+            QPushButton {
+                background-color: #4a90e2;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: bold;
+                min-height: 20px;
+            }
+            QPushButton:hover {
+                background-color: #357abd;
+            }
+            QPushButton:pressed {
+                background-color: #2c5aa0;
+            }
+            QPushButton:disabled {
+                background-color: #666;
+                color: #999;
+            }
+            QLineEdit {
+                background-color: #333;
+                color: white;
+                border: 2px solid #555;
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-size: 13px;
+            }
+            QLineEdit:focus {
+                border-color: #4a90e2;
+                background-color: #3a3a3a;
+            }
+            QSpinBox, QDoubleSpinBox {
+                background-color: #333;
+                color: white;
+                border: 2px solid #555;
+                padding: 6px 10px;
+                border-radius: 8px;
+                font-size: 13px;
+            }
+            QSpinBox:focus, QDoubleSpinBox:focus {
+                border-color: #4a90e2;
+                background-color: #3a3a3a;
             }
         """)
     
@@ -3775,19 +3856,23 @@ class InputTab(QWidget):
         self.load_settings()
     
     def setup_ui(self):
-        """Setup the input settings UI."""
+        """Setup the Input Settings UI with improved layout and spacing."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)  # Better margins
-        layout.setSpacing(20)  # Better spacing
+        layout.setContentsMargins(24, 24, 24, 24)  # Consistent margins
+        layout.setSpacing(24)  # Consistent spacing
         
-        # Header with better styling
+        # Header with improved styling
         header = QLabel("🎮 Input Settings")
         header.setStyleSheet("""
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
             color: #ffffff;
-            margin-bottom: 16px;
-            padding: 12px 0px;
+            margin-bottom: 20px;
+            padding: 16px 0px;
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #9b59b6, stop:1 #8e44ad);
+            border-radius: 12px;
+            text-align: center;
         """)
         layout.addWidget(header)
         
@@ -3801,23 +3886,29 @@ class InputTab(QWidget):
             }
             QScrollBar:vertical {
                 background-color: #333;
-                width: 12px;
-                border-radius: 6px;
+                width: 14px;
+                border-radius: 7px;
+                margin: 0px;
             }
             QScrollBar::handle:vertical {
                 background-color: #666;
-                border-radius: 6px;
-                min-height: 20px;
+                border-radius: 7px;
+                min-height: 24px;
+                margin: 2px;
             }
             QScrollBar::handle:vertical:hover {
                 background-color: #888;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
             }
         """)
         
         # Main content widget
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
-        self.content_layout.setSpacing(12)
+        self.content_layout.setSpacing(16)  # Better spacing between sections
+        self.content_layout.setContentsMargins(8, 8, 8, 8)  # Consistent margins
         
         # Create input sections
         self.create_mouse_section()

@@ -1,4 +1,4 @@
-# FieldTuner - Battlefield 6 Configuration Tool
+# FieldTuner 1.0 - Battlefield 6 Configuration Tool
 
 <div align="center">
 
