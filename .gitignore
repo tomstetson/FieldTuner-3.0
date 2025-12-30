@@ -166,21 +166,16 @@ cython_debug/
 .vscode/
 
 # FieldTuner specific
-# releases/  # Allow release executables
+releases/
 temp/
 build/
 dist/
-# *.exe  # Allow release executables
+*.exe
 *.bat
 *.log
 
-# Temporary development files
-*_CHECKLIST.md
-*_READY_*.md
-*_FINAL.md
-*_PUSH_*.md
-# Allow phase summaries
-PHASE*_SUMMARY.md
+# PyInstaller
+*.spec
 
 # Backup files
 *.bak
