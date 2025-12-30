@@ -1,723 +1,398 @@
-"""
-MainWindow - Modern, simplified main window for FieldTuner Ultimate.
-Features a clean tabbed interface with search, presets, and settings management.
-"""
-
+﻿"""FieldTuner 3.0 - Stable UI"""
 import sys
 from pathlib import Path
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
-    QLabel, QLineEdit, QPushButton, QComboBox, QStatusBar,
-    QMessageBox, QScrollArea, QGridLayout, QGroupBox, QSlider,
-    QCheckBox, QDoubleSpinBox, QSpinBox, QFrame, QSplitter,
-    QListWidget, QListWidgetItem, QStackedWidget, QSizePolicy
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+    QLineEdit, QPushButton, QComboBox, QStatusBar, QMessageBox, 
+    QScrollArea, QFrame, QCheckBox, QDoubleSpinBox, QSpinBox,
+    QStackedWidget, QListWidget, QListWidgetItem, QApplication,
+    QSplitter, QTreeWidget, QTreeWidgetItem, QHeaderView
 )
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPalette, QColor
 
-from ui.theme import get_stylesheet, THEME
-from core import (
-    ConfigManager, BackupManager, SETTINGS_DATABASE,
-    get_setting_info, search_settings,
-    PRESETS, apply_preset
-)
-from core.settings_database import get_categories, get_settings_by_category
-
+# Direct config file access
+CONFIG_PATH = Path.home() / "OneDrive" / "Documents" / "Battlefield 6" / "settings" / "steam" / "PROFSAVE_profile"
+BACKUP_DIR = Path.home() / "AppData" / "Roaming" / "FieldTuner" / "backups"
 
 class MainWindow(QMainWindow):
-    """Main application window with modern UI."""
-    
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("FieldTuner 3.0 - Battlefield 6 Configuration Tool")
-        self.setMinimumSize(1100, 750)
-        self.resize(1200, 800)
-        
-        # Apply theme
-        self.setStyleSheet(get_stylesheet())
-        
-        # Initialize managers
-        self.config_manager = ConfigManager()
-        self.backup_manager = BackupManager()
-        
-        # Track modified settings
-        self.modified_settings = set()
-        
-        # Setup UI
-        self._setup_ui()
-        self._update_status()
-        
-        # Create initial backup if config loaded
-        if self.config_manager.config_path:
-            self.backup_manager.create_backup(
-                self.config_manager.config_path, 
-                "app_start"
-            )
+        self.setWindowTitle("FieldTuner 3.0")
+        self.resize(1100, 750)
+        self.settings = {}
+        self.modified = set()
+        self._setup_dark_palette()
+        self._load_config()
+        self._build_ui()
     
-    def _setup_ui(self):
-        """Setup the main UI layout."""
+    def _setup_dark_palette(self):
+        palette = QPalette()
+        palette.setColor(QPalette.ColorRole.Window, QColor(30, 30, 30))
+        palette.setColor(QPalette.ColorRole.WindowText, QColor(220, 220, 220))
+        palette.setColor(QPalette.ColorRole.Base, QColor(45, 45, 45))
+        palette.setColor(QPalette.ColorRole.AlternateBase, QColor(55, 55, 55))
+        palette.setColor(QPalette.ColorRole.Text, QColor(220, 220, 220))
+        palette.setColor(QPalette.ColorRole.Button, QColor(55, 55, 55))
+        palette.setColor(QPalette.ColorRole.ButtonText, QColor(220, 220, 220))
+        palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))
+        palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
+        self.setPalette(palette)
+        QApplication.instance().setPalette(palette)
+    
+    def _load_config(self):
+        self.settings = {}
+        self.config_path = None
+        paths = [
+            CONFIG_PATH,
+            Path.home() / "Documents" / "Battlefield 6" / "settings" / "steam" / "PROFSAVE_profile",
+            Path.home() / "Documents" / "Battlefield 6" / "settings" / "PROFSAVE_profile",
+        ]
+        for p in paths:
+            if p.exists():
+                self.config_path = p
+                break
+        if self.config_path:
+            try:
+                with open(self.config_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    for line in f:
+                        line = line.strip()
+                        if ' ' in line:
+                            key, val = line.split(' ', 1)
+                            self.settings[key] = val
+            except Exception as e:
+                print(f"Error loading config: {e}")
+    
+    def _build_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
+        main = QHBoxLayout(central)
+        main.setContentsMargins(0, 0, 0, 0)
+        main.setSpacing(0)
         
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        # Sidebar
+        sidebar = QFrame()
+        sidebar.setFixedWidth(180)
+        sidebar.setStyleSheet("QFrame{background:#1a1a1a;border-right:1px solid #333}")
+        sb_layout = QVBoxLayout(sidebar)
+        sb_layout.setContentsMargins(10, 15, 10, 15)
+        sb_layout.setSpacing(5)
         
-        # Header
-        self._create_header(layout)
+        title = QLabel("FieldTuner 3.0")
+        title.setStyleSheet("font-size:16px;font-weight:bold;color:#0af;padding:10px 0")
+        sb_layout.addWidget(title)
         
-        # Main content area
+        self.nav_btns = {}
+        for name in ["Home", "Graphics", "Audio", "Input", "Backups"]:
+            btn = QPushButton(name)
+            btn.setCheckable(True)
+            btn.setStyleSheet("""
+                QPushButton{text-align:left;padding:10px;border:none;border-radius:5px;background:transparent;color:#aaa}
+                QPushButton:hover{background:#2a2a2a;color:#fff}
+                QPushButton:checked{background:#0af;color:#000;font-weight:bold}
+            """)
+            btn.clicked.connect(lambda c, n=name: self._nav(n))
+            self.nav_btns[name] = btn
+            sb_layout.addWidget(btn)
+        
+        sb_layout.addStretch()
+        
+        save_btn = QPushButton("Save Changes")
+        save_btn.setStyleSheet("QPushButton{background:#0a5;color:#fff;padding:12px;border:none;border-radius:5px;font-weight:bold}QPushButton:hover{background:#0c7}")
+        save_btn.clicked.connect(self._save)
+        sb_layout.addWidget(save_btn)
+        
+        main.addWidget(sidebar)
+        
+        # Content
         content = QWidget()
-        content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(16, 16, 16, 16)
+        content.setStyleSheet("background:#222")
+        cl = QVBoxLayout(content)
+        cl.setContentsMargins(20, 20, 20, 20)
         
-        # Tab widget
-        self.tabs = QTabWidget()
-        self._create_tabs()
-        content_layout.addWidget(self.tabs)
+        self.pages = QStackedWidget()
+        self.pages.addWidget(self._home_page())
+        self.pages.addWidget(self._settings_page("GstRender"))
+        self.pages.addWidget(self._settings_page("GstAudio"))
+        self.pages.addWidget(self._settings_page("GstInput"))
+        self.pages.addWidget(self._backups_page())
         
-        layout.addWidget(content)
+        cl.addWidget(self.pages)
+        main.addWidget(content, 1)
         
-        # Status bar
-        self._create_status_bar()
+        self.statusBar().showMessage(f"Loaded: {self.config_path.name if self.config_path else 'No config'} | {len(self.settings)} settings")
+        self._nav("Home")
     
-    def _create_header(self, parent_layout):
-        """Create the application header."""
-        header = QWidget()
-        header.setFixedHeight(70)
-        header.setStyleSheet(f"""
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 {THEME['colors']['accent_primary']}, 
-                stop:1 #c13b51);
-            border-bottom: 2px solid {THEME['colors']['border_primary']};
-        """)
-        
-        layout = QHBoxLayout(header)
-        layout.setContentsMargins(24, 12, 24, 12)
-        
-        # Logo/Title
-        title = QLabel("🎮 FieldTuner 3.0")
-        title.setStyleSheet("""
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-        """)
-        layout.addWidget(title)
-        
-        # Search box
-        self.search_box = QLineEdit()
-        self.search_box.setPlaceholderText("🔍 Search settings (e.g., 'vsync', 'fps', 'motion blur')")
-        self.search_box.setFixedWidth(350)
-        self.search_box.setStyleSheet("""
-            QLineEdit {
-                background-color: rgba(255,255,255,0.15);
-                border: 1px solid rgba(255,255,255,0.3);
-                border-radius: 8px;
-                padding: 8px 12px;
-                color: white;
-            }
-            QLineEdit:focus {
-                background-color: rgba(255,255,255,0.2);
-                border-color: white;
-            }
-        """)
-        self.search_box.textChanged.connect(self._on_search)
-        layout.addWidget(self.search_box)
-        
-        layout.addStretch()
-        
-        # Save button
-        save_btn = QPushButton("💾 Save Changes")
-        save_btn.setProperty("class", "success")
-        save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4ade80;
-                color: #1a1a2e;
-                border: none;
-                border-radius: 8px;
-                padding: 10px 20px;
-                font-weight: bold;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #22c55e;
-            }
-        """)
-        save_btn.clicked.connect(self._save_config)
-        layout.addWidget(save_btn)
-        
-        parent_layout.addWidget(header)
+    def _nav(self, page):
+        for n, b in self.nav_btns.items():
+            b.setChecked(n == page)
+        idx = {"Home": 0, "Graphics": 1, "Audio": 2, "Input": 3, "Backups": 4}.get(page, 0)
+        self.pages.setCurrentIndex(idx)
     
-    def _create_tabs(self):
-        """Create all application tabs."""
-        # Dashboard tab
-        self.tabs.addTab(self._create_dashboard_tab(), "🏠 Dashboard")
-        
-        # Settings tabs by category
-        self.tabs.addTab(self._create_category_tab("Graphics"), "🖥️ Graphics")
-        self.tabs.addTab(self._create_category_tab("Performance"), "⚡ Performance")
-        self.tabs.addTab(self._create_category_tab("Audio"), "🔊 Audio")
-        self.tabs.addTab(self._create_category_tab("Input"), "🎮 Input")
-        
-        # Presets tab
-        self.tabs.addTab(self._create_presets_tab(), "✨ Presets")
-        
-        # Backup tab
-        self.tabs.addTab(self._create_backup_tab(), "💾 Backups")
-        
-        # Search results tab (hidden initially)
-        self.search_results_tab = self._create_search_results_tab()
-        self.search_tab_index = self.tabs.addTab(self.search_results_tab, "🔍 Search Results")
-        self.tabs.setTabVisible(self.search_tab_index, False)
-    
-    def _create_dashboard_tab(self) -> QWidget:
-        """Create the dashboard/overview tab."""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
+    def _home_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
         layout.setSpacing(20)
         
-        # Welcome section
-        welcome = QLabel("Welcome to FieldTuner Ultimate")
-        welcome.setStyleSheet("font-size: 28px; font-weight: bold; color: white;")
-        layout.addWidget(welcome)
+        h = QLabel("Welcome to FieldTuner")
+        h.setStyleSheet("font-size:24px;font-weight:bold;color:#fff")
+        layout.addWidget(h)
         
-        subtitle = QLabel("The ultimate Battlefield 6 configuration tool")
-        subtitle.setStyleSheet(f"font-size: 16px; color: {THEME['colors']['text_secondary']};")
-        layout.addWidget(subtitle)
+        sub = QLabel("Battlefield 6 Configuration Tool")
+        sub.setStyleSheet("color:#888;font-size:14px")
+        layout.addWidget(sub)
         
-        layout.addSpacing(20)
+        # Info cards
+        info = QHBoxLayout()
+        info.setSpacing(15)
         
-        # Status cards
-        cards_layout = QHBoxLayout()
-        cards_layout.setSpacing(16)
+        for title, val, color in [
+            ("Config", self.config_path.name if self.config_path else "Not found", "#0af"),
+            ("Settings", str(len(self.settings)), "#0a5"),
+            ("Modified", str(len(self.modified)), "#fa0")
+        ]:
+            card = QFrame()
+            card.setStyleSheet(f"QFrame{{background:#2a2a2a;border-radius:8px;border-left:3px solid {color}}}")
+            card.setFixedSize(150, 70)
+            cl = QVBoxLayout(card)
+            cl.setContentsMargins(12, 10, 12, 10)
+            t = QLabel(title)
+            t.setStyleSheet("color:#888;font-size:11px")
+            cl.addWidget(t)
+            v = QLabel(val)
+            v.setStyleSheet(f"color:{color};font-size:15px;font-weight:bold")
+            cl.addWidget(v)
+            info.addWidget(card)
         
-        # Config status card
-        config_card = self._create_status_card(
-            "📁 Config File",
-            self.config_manager.config_path.name if self.config_manager.config_path else "Not loaded",
-            THEME['colors']['accent_secondary']
-        )
-        cards_layout.addWidget(config_card)
-        
-        # Settings count card
-        settings_card = self._create_status_card(
-            "⚙️ Settings Loaded",
-            str(self.config_manager.get_setting_count()),
-            THEME['colors']['accent_success']
-        )
-        cards_layout.addWidget(settings_card)
-        
-        # Backups card
-        backups_card = self._create_status_card(
-            "💾 Backups",
-            str(self.backup_manager.get_backup_count()),
-            THEME['colors']['accent_warning']
-        )
-        cards_layout.addWidget(backups_card)
-        
-        cards_layout.addStretch()
-        layout.addLayout(cards_layout)
-        
-        layout.addSpacing(30)
+        info.addStretch()
+        layout.addLayout(info)
         
         # Quick actions
-        actions_label = QLabel("Quick Actions")
-        actions_label.setStyleSheet("font-size: 18px; font-weight: bold;")
-        layout.addWidget(actions_label)
+        qa = QLabel("Quick Actions")
+        qa.setStyleSheet("font-size:16px;font-weight:bold;color:#fff;margin-top:20px")
+        layout.addWidget(qa)
         
-        actions_layout = QHBoxLayout()
-        actions_layout.setSpacing(12)
-        
-        for preset_key, preset in list(PRESETS.items())[:4]:
-            btn = QPushButton(f"{preset['icon']} {preset['name']}")
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {preset['color']};
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    padding: 15px 25px;
-                    font-weight: bold;
-                    font-size: 14px;
-                }}
-                QPushButton:hover {{
-                    opacity: 0.9;
-                }}
-            """)
-            btn.setToolTip(preset['description'])
-            btn.clicked.connect(lambda checked, k=preset_key: self._apply_preset(k))
-            actions_layout.addWidget(btn)
-        
-        actions_layout.addStretch()
-        layout.addLayout(actions_layout)
+        btns = QHBoxLayout()
+        btns.setSpacing(10)
+        presets = [
+            ("Esports", "#e44", {"GstRender.OverallGraphicsQuality": "0", "GstRender.VSyncMode": "0"}),
+            ("Balanced", "#0a5", {"GstRender.OverallGraphicsQuality": "2"}),
+            ("Quality", "#48f", {"GstRender.OverallGraphicsQuality": "3"}),
+        ]
+        for name, color, settings in presets:
+            btn = QPushButton(name)
+            btn.setStyleSheet(f"QPushButton{{background:{color};color:#fff;padding:12px 25px;border:none;border-radius:6px;font-weight:bold}}QPushButton:hover{{opacity:0.8}}")
+            btn.clicked.connect(lambda c, s=settings, n=name: self._apply_preset(n, s))
+            btns.addWidget(btn)
+        btns.addStretch()
+        layout.addLayout(btns)
         
         layout.addStretch()
-        
-        # Footer note
-        footer = QLabel("Made with ❤️ by SneakyTom • Consolidated from multiple FieldTuner versions")
-        footer.setStyleSheet(f"color: {THEME['colors']['text_muted']}; font-size: 12px;")
-        footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(footer)
-        
-        return widget
+        return page
     
-    def _create_status_card(self, title: str, value: str, color: str) -> QFrame:
-        """Create a status card widget."""
-        card = QFrame()
-        card.setFixedSize(200, 100)
-        card.setStyleSheet(f"""
-            QFrame {{
-                background-color: {THEME['colors']['bg_card']};
-                border: 1px solid {THEME['colors']['border_primary']};
-                border-radius: 12px;
-                border-left: 4px solid {color};
-            }}
-        """)
+    def _settings_page(self, prefix):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setSpacing(10)
         
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(16, 12, 16, 12)
+        # Header
+        header = QHBoxLayout()
+        title = QLabel(prefix.replace("Gst", ""))
+        title.setStyleSheet("font-size:22px;font-weight:bold;color:#fff")
+        header.addWidget(title)
+        header.addStretch()
         
-        title_label = QLabel(title)
-        title_label.setStyleSheet(f"color: {THEME['colors']['text_secondary']}; font-size: 12px;")
-        layout.addWidget(title_label)
+        search = QLineEdit()
+        search.setPlaceholderText("Search...")
+        search.setFixedWidth(200)
+        search.setStyleSheet("QLineEdit{background:#333;border:1px solid #444;border-radius:5px;padding:8px;color:#fff}QLineEdit:focus{border-color:#0af}")
+        header.addWidget(search)
+        layout.addLayout(header)
         
-        value_label = QLabel(value)
-        value_label.setStyleSheet(f"color: {color}; font-size: 20px; font-weight: bold;")
-        layout.addWidget(value_label)
-        
-        return card
-    
-    def _create_category_tab(self, category: str) -> QWidget:
-        """Create a settings tab for a specific category."""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # Scroll area for settings
+        # Settings list
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet("QScrollArea{border:none}")
         
-        scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setSpacing(12)
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setSpacing(5)
+        container_layout.setContentsMargins(0, 10, 0, 10)
         
-        # Get settings for this category
-        settings = get_settings_by_category(category)
+        # Get settings for this prefix
+        relevant = {k: v for k, v in self.settings.items() if k.startswith(prefix) and "ShaderBundle" not in k and "KeyBinding" not in k}
         
-        # Group by subcategory
-        subcategories = {}
-        for key, info in settings.items():
-            subcat = info.get('subcategory', 'General')
-            if subcat not in subcategories:
-                subcategories[subcat] = {}
-            subcategories[subcat][key] = info
+        for key, val in sorted(relevant.items()):
+            row = self._create_setting_row(key, val)
+            container_layout.addWidget(row)
         
-        # Create groups
-        for subcat_name, subcat_settings in subcategories.items():
-            group = QGroupBox(subcat_name)
-            group_layout = QGridLayout(group)
-            group_layout.setSpacing(12)
-            
-            row = 0
-            for key, info in subcat_settings.items():
-                # Label
-                label = QLabel(info['name'])
-                label.setToolTip(info.get('tooltip', ''))
-                group_layout.addWidget(label, row, 0)
-                
-                # Control widget
-                control = self._create_setting_control(key, info)
-                group_layout.addWidget(control, row, 1)
-                
-                row += 1
-            
-            scroll_layout.addWidget(group)
-        
-        scroll_layout.addStretch()
-        scroll.setWidget(scroll_content)
+        container_layout.addStretch()
+        scroll.setWidget(container)
         layout.addWidget(scroll)
         
-        return widget
+        # Connect search
+        def filter_settings(text):
+            text = text.lower()
+            for i in range(container_layout.count() - 1):
+                w = container_layout.itemAt(i).widget()
+                if w:
+                    w.setVisible(text in w.property("key").lower() if w.property("key") else True)
+        search.textChanged.connect(filter_settings)
+        
+        return page
     
-    def _create_setting_control(self, key: str, info: dict) -> QWidget:
-        """Create the appropriate control widget for a setting."""
-        setting_type = info.get('type', 'float')
-        current_value = self.config_manager.get(key)
+    def _create_setting_row(self, key, val):
+        row = QFrame()
+        row.setProperty("key", key)
+        row.setStyleSheet("QFrame{background:#2a2a2a;border-radius:6px;padding:5px}QFrame:hover{background:#333}")
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(15, 10, 15, 10)
         
-        if setting_type == 'bool':
-            control = QCheckBox()
-            if current_value is not None:
-                control.setChecked(str(current_value) == '1')
-            control.stateChanged.connect(lambda state, k=key: self._on_setting_changed(k, '1' if state else '0'))
+        # Name
+        name = key.split('.')[-1]
+        name_label = QLabel(name)
+        name_label.setStyleSheet("font-weight:bold;color:#ddd")
+        name_label.setFixedWidth(250)
+        layout.addWidget(name_label)
+        
+        # Value control
+        try:
+            fval = float(val)
+            is_bool = fval in (0.0, 1.0) and '.' not in val
+            is_int = fval == int(fval) and '.' not in val
             
-        elif 'options' in info:
-            control = QComboBox()
-            control.setMinimumWidth(150)
-            for val, text in info['options'].items():
-                control.addItem(text, val)
-            if current_value is not None:
-                try:
-                    index = list(info['options'].keys()).index(int(float(current_value)))
-                    control.setCurrentIndex(index)
-                except (ValueError, IndexError):
-                    pass
-            control.currentIndexChanged.connect(lambda idx, k=key, c=control: self._on_setting_changed(k, str(c.currentData())))
-            
-        elif setting_type == 'int':
-            control = QSpinBox()
-            control.setMinimum(int(info.get('range', [0, 100])[0]))
-            control.setMaximum(int(info.get('range', [0, 100])[1]))
-            if current_value is not None:
-                try:
-                    control.setValue(int(float(current_value)))
-                except ValueError:
-                    pass
-            control.valueChanged.connect(lambda val, k=key: self._on_setting_changed(k, str(val)))
-            
-        else:  # float
-            control = QDoubleSpinBox()
-            control.setMinimum(float(info.get('range', [0, 1])[0]))
-            control.setMaximum(float(info.get('range', [0, 1])[1]))
-            control.setDecimals(2)
-            control.setSingleStep(0.1)
-            if current_value is not None:
-                try:
-                    control.setValue(float(current_value))
-                except ValueError:
-                    pass
-            control.valueChanged.connect(lambda val, k=key: self._on_setting_changed(k, f"{val:.6f}"))
+            if is_bool:
+                ctrl = QCheckBox()
+                ctrl.setChecked(int(fval) == 1)
+                ctrl.setStyleSheet("QCheckBox::indicator{width:20px;height:20px}QCheckBox::indicator:unchecked{background:#444;border:2px solid #555;border-radius:4px}QCheckBox::indicator:checked{background:#0af;border:2px solid #0af;border-radius:4px}")
+                ctrl.stateChanged.connect(lambda s, k=key: self._change(k, "1" if s else "0"))
+            elif is_int:
+                ctrl = QSpinBox()
+                ctrl.setRange(-999999, 999999)
+                ctrl.setValue(int(fval))
+                ctrl.setStyleSheet("QSpinBox{background:#333;border:1px solid #444;border-radius:4px;padding:5px;color:#fff;min-width:100px}")
+                ctrl.valueChanged.connect(lambda v, k=key: self._change(k, str(v)))
+            else:
+                ctrl = QDoubleSpinBox()
+                ctrl.setRange(-999999, 999999)
+                ctrl.setDecimals(6)
+                ctrl.setValue(fval)
+                ctrl.setStyleSheet("QDoubleSpinBox{background:#333;border:1px solid #444;border-radius:4px;padding:5px;color:#fff;min-width:100px}")
+                ctrl.valueChanged.connect(lambda v, k=key: self._change(k, f"{v:.6f}"))
+        except:
+            ctrl = QLineEdit(val)
+            ctrl.setStyleSheet("QLineEdit{background:#333;border:1px solid #444;border-radius:4px;padding:5px;color:#fff;min-width:150px}")
+            ctrl.textChanged.connect(lambda t, k=key: self._change(k, t))
         
-        control.setToolTip(info.get('tooltip', ''))
-        return control
-    
-    def _create_presets_tab(self) -> QWidget:
-        """Create the presets tab."""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setSpacing(20)
-        
-        title = QLabel("Performance Presets")
-        title.setStyleSheet("font-size: 20px; font-weight: bold;")
-        layout.addWidget(title)
-        
-        desc = QLabel("Apply optimized settings for different playstyles")
-        desc.setStyleSheet(f"color: {THEME['colors']['text_secondary']};")
-        layout.addWidget(desc)
-        
-        layout.addSpacing(20)
-        
-        # Preset cards
-        presets_layout = QGridLayout()
-        presets_layout.setSpacing(16)
-        
-        col = 0
-        row = 0
-        for preset_key, preset in PRESETS.items():
-            card = self._create_preset_card(preset_key, preset)
-            presets_layout.addWidget(card, row, col)
-            col += 1
-            if col >= 3:
-                col = 0
-                row += 1
-        
-        layout.addLayout(presets_layout)
+        layout.addWidget(ctrl)
         layout.addStretch()
-        
-        return widget
+        return row
     
-    def _create_preset_card(self, preset_key: str, preset: dict) -> QFrame:
-        """Create a preset card."""
-        card = QFrame()
-        card.setFixedSize(280, 180)
-        card.setStyleSheet(f"""
-            QFrame {{
-                background-color: {THEME['colors']['bg_card']};
-                border: 2px solid {THEME['colors']['border_primary']};
-                border-radius: 12px;
-            }}
-            QFrame:hover {{
-                border-color: {preset['color']};
-            }}
-        """)
+    def _backups_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
         
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(16, 16, 16, 16)
+        h = QLabel("Backups")
+        h.setStyleSheet("font-size:22px;font-weight:bold;color:#fff")
+        layout.addWidget(h)
         
-        # Header
-        header = QLabel(f"{preset['icon']} {preset['name']}")
-        header.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {preset['color']};")
-        layout.addWidget(header)
+        # Buttons
+        btns = QHBoxLayout()
+        create = QPushButton("Create Backup")
+        create.setStyleSheet("QPushButton{background:#0af;color:#000;padding:10px 20px;border:none;border-radius:5px;font-weight:bold}")
+        create.clicked.connect(self._create_backup)
+        btns.addWidget(create)
+        btns.addStretch()
+        layout.addLayout(btns)
         
-        # Description
-        desc = QLabel(preset['description'])
-        desc.setWordWrap(True)
-        desc.setStyleSheet(f"color: {THEME['colors']['text_secondary']}; font-size: 12px;")
-        layout.addWidget(desc)
-        
-        layout.addStretch()
-        
-        # Apply button
-        btn = QPushButton("Apply Preset")
-        btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {preset['color']};
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                opacity: 0.9;
-            }}
-        """)
-        btn.clicked.connect(lambda: self._apply_preset(preset_key))
-        layout.addWidget(btn)
-        
-        return card
-    
-    def _create_backup_tab(self) -> QWidget:
-        """Create the backup management tab."""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setSpacing(16)
-        
-        # Header
-        header_layout = QHBoxLayout()
-        title = QLabel("Backup Manager")
-        title.setStyleSheet("font-size: 20px; font-weight: bold;")
-        header_layout.addWidget(title)
-        
-        header_layout.addStretch()
-        
-        create_btn = QPushButton("➕ Create Backup")
-        create_btn.clicked.connect(self._create_backup)
-        header_layout.addWidget(create_btn)
-        
-        layout.addLayout(header_layout)
-        
-        # Backup list
+        # List
         self.backup_list = QListWidget()
-        self.backup_list.setMinimumHeight(300)
-        self._refresh_backup_list()
+        self.backup_list.setStyleSheet("QListWidget{background:#2a2a2a;border:1px solid #333;border-radius:6px}QListWidget::item{padding:10px;border-bottom:1px solid #333}QListWidget::item:selected{background:#0af;color:#000}")
+        self._refresh_backups()
         layout.addWidget(self.backup_list)
         
         # Actions
-        actions_layout = QHBoxLayout()
+        acts = QHBoxLayout()
+        restore = QPushButton("Restore")
+        restore.clicked.connect(self._restore_backup)
+        acts.addWidget(restore)
+        delete = QPushButton("Delete")
+        delete.clicked.connect(self._delete_backup)
+        acts.addWidget(delete)
+        acts.addStretch()
+        layout.addLayout(acts)
         
-        restore_btn = QPushButton("♻️ Restore Selected")
-        restore_btn.clicked.connect(self._restore_backup)
-        actions_layout.addWidget(restore_btn)
-        
-        delete_btn = QPushButton("🗑️ Delete Selected")
-        delete_btn.clicked.connect(self._delete_backup)
-        actions_layout.addWidget(delete_btn)
-        
-        actions_layout.addStretch()
-        
-        refresh_btn = QPushButton("🔄 Refresh")
-        refresh_btn.clicked.connect(self._refresh_backup_list)
-        actions_layout.addWidget(refresh_btn)
-        
-        layout.addLayout(actions_layout)
-        
-        return widget
+        return page
     
-    def _create_search_results_tab(self) -> QWidget:
-        """Create the search results tab."""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        self.search_results_label = QLabel("Search results will appear here")
-        self.search_results_label.setStyleSheet(f"color: {THEME['colors']['text_secondary']};")
-        layout.addWidget(self.search_results_label)
-        
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        
-        self.search_results_content = QWidget()
-        self.search_results_layout = QVBoxLayout(self.search_results_content)
-        scroll.setWidget(self.search_results_content)
-        
-        layout.addWidget(scroll)
-        
-        return widget
+    def _change(self, key, val):
+        self.settings[key] = val
+        self.modified.add(key)
+        self.statusBar().showMessage(f"{len(self.modified)} unsaved changes")
     
-    def _create_status_bar(self):
-        """Create the status bar."""
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
-        self._update_status()
+    def _apply_preset(self, name, settings):
+        if QMessageBox.question(self, "Apply Preset", f"Apply {name} preset?") == QMessageBox.StandardButton.Yes:
+            for k, v in settings.items():
+                self.settings[k] = v
+                self.modified.add(k)
+            self.statusBar().showMessage(f"Applied {name} preset - {len(self.modified)} changes pending")
     
-    def _update_status(self):
-        """Update the status bar."""
-        if self.config_manager.config_path:
-            status = f"📁 {self.config_manager.config_path.name} | ⚙️ {self.config_manager.get_setting_count()} settings"
-            if self.modified_settings:
-                status += f" | ✏️ {len(self.modified_settings)} modified"
-        else:
-            status = "⚠️ No config file loaded - Please ensure BF6 has been run at least once"
-        
-        self.status_bar.showMessage(status)
-    
-    def _on_search(self, text: str):
-        """Handle search input."""
-        if not text.strip():
-            self.tabs.setTabVisible(self.search_tab_index, False)
+    def _save(self):
+        if not self.config_path:
+            QMessageBox.warning(self, "Error", "No config file found")
             return
-        
-        # Show search tab
-        self.tabs.setTabVisible(self.search_tab_index, True)
-        self.tabs.setCurrentIndex(self.search_tab_index)
-        
-        # Clear previous results
-        while self.search_results_layout.count():
-            item = self.search_results_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-        
-        # Search
-        results = search_settings(text)
-        
-        self.search_results_label.setText(f"Found {len(results)} settings matching '{text}'")
-        
-        for key, info in results.items():
-            group = QGroupBox(f"{info['name']} ({info.get('category', 'Other')})")
-            group_layout = QHBoxLayout(group)
-            
-            control = self._create_setting_control(key, info)
-            group_layout.addWidget(QLabel(key))
-            group_layout.addStretch()
-            group_layout.addWidget(control)
-            
-            self.search_results_layout.addWidget(group)
-        
-        self.search_results_layout.addStretch()
-    
-    def _on_setting_changed(self, key: str, value: str):
-        """Handle setting value change."""
-        self.config_manager.set(key, value)
-        self.modified_settings.add(key)
-        self._update_status()
-    
-    def _apply_preset(self, preset_key: str):
-        """Apply a preset."""
-        if self.config_manager.is_battlefield_running():
-            QMessageBox.warning(self, "Game Running", 
-                "Please close Battlefield 6 before applying presets.")
-            return
-        
-        reply = QMessageBox.question(
-            self, "Apply Preset",
-            f"Apply '{PRESETS[preset_key]['name']}' preset?\n\nThis will modify {len(PRESETS[preset_key]['settings'])} settings.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        
-        if reply == QMessageBox.StandardButton.Yes:
-            success, message = apply_preset(self.config_manager, preset_key)
-            if success:
-                self.modified_settings.update(PRESETS[preset_key]['settings'].keys())
-                self._update_status()
-                QMessageBox.information(self, "Success", message)
-            else:
-                QMessageBox.warning(self, "Error", message)
-    
-    def _save_config(self):
-        """Save configuration changes."""
-        if not self.config_manager.config_path:
-            QMessageBox.warning(self, "No Config", "No configuration file loaded.")
-            return
-        
-        if self.config_manager.is_battlefield_running():
-            QMessageBox.warning(self, "Game Running",
-                "Please close Battlefield 6 before saving changes.")
-            return
-        
-        # Create backup first
-        self.backup_manager.create_backup(self.config_manager.config_path, "before_save")
-        
-        success, message = self.config_manager.save()
-        
-        if success:
-            self.modified_settings.clear()
-            self._update_status()
-            QMessageBox.information(self, "Saved", f"✅ {message}")
-        else:
-            QMessageBox.warning(self, "Save Failed", message)
+        try:
+            # Backup first
+            self._create_backup()
+            # Write
+            lines = []
+            for k, v in sorted(self.settings.items()):
+                lines.append(f"{k} {v}")
+            with open(self.config_path, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(lines) + '\n')
+            self.modified.clear()
+            self.statusBar().showMessage("Saved successfully!")
+            QMessageBox.information(self, "Saved", "Configuration saved!")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Save failed: {e}")
     
     def _create_backup(self):
-        """Create a manual backup."""
-        if not self.config_manager.config_path:
-            QMessageBox.warning(self, "No Config", "No configuration file to backup.")
+        if not self.config_path:
             return
-        
-        path = self.backup_manager.create_backup(self.config_manager.config_path, "manual")
-        if path:
-            self._refresh_backup_list()
-            QMessageBox.information(self, "Backup Created", f"Backup saved to:\n{path.name}")
-        else:
-            QMessageBox.warning(self, "Backup Failed", "Failed to create backup.")
+        try:
+            BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+            from datetime import datetime
+            name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            import shutil
+            shutil.copy(self.config_path, BACKUP_DIR / name)
+            self._refresh_backups()
+        except Exception as e:
+            print(f"Backup error: {e}")
+    
+    def _refresh_backups(self):
+        if hasattr(self, 'backup_list'):
+            self.backup_list.clear()
+            if BACKUP_DIR.exists():
+                for f in sorted(BACKUP_DIR.glob("*.txt"), reverse=True):
+                    self.backup_list.addItem(f.name)
     
     def _restore_backup(self):
-        """Restore selected backup."""
         item = self.backup_list.currentItem()
         if not item:
-            QMessageBox.warning(self, "No Selection", "Please select a backup to restore.")
             return
-        
-        backup_name = item.data(Qt.ItemDataRole.UserRole)
-        
-        reply = QMessageBox.question(
-            self, "Restore Backup",
-            f"Restore backup '{backup_name}'?\n\nThis will overwrite your current settings.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        
-        if reply == QMessageBox.StandardButton.Yes:
-            success, message = self.backup_manager.restore_backup(
-                backup_name, self.config_manager.config_path
-            )
-            if success:
-                self.config_manager.reload()
-                self.modified_settings.clear()
-                self._update_status()
-                QMessageBox.information(self, "Restored", message)
-            else:
-                QMessageBox.warning(self, "Restore Failed", message)
+        if QMessageBox.question(self, "Restore", f"Restore {item.text()}?") == QMessageBox.StandardButton.Yes:
+            try:
+                import shutil
+                shutil.copy(BACKUP_DIR / item.text(), self.config_path)
+                self._load_config()
+                self.statusBar().showMessage("Restored!")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", str(e))
     
     def _delete_backup(self):
-        """Delete selected backup."""
         item = self.backup_list.currentItem()
-        if not item:
-            QMessageBox.warning(self, "No Selection", "Please select a backup to delete.")
-            return
-        
-        backup_name = item.data(Qt.ItemDataRole.UserRole)
-        
-        reply = QMessageBox.question(
-            self, "Delete Backup",
-            f"Delete backup '{backup_name}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        
-        if reply == QMessageBox.StandardButton.Yes:
-            success, message = self.backup_manager.delete_backup(backup_name)
-            if success:
-                self._refresh_backup_list()
-            else:
-                QMessageBox.warning(self, "Delete Failed", message)
-    
-    def _refresh_backup_list(self):
-        """Refresh the backup list."""
-        self.backup_list.clear()
-        
-        for backup in self.backup_manager.get_backups():
-            metadata = backup['metadata']
-            text = f"📦 {backup['name']}"
-            if 'description' in metadata and metadata['description']:
-                text += f" - {metadata['description']}"
-            
-            item = QListWidgetItem(text)
-            item.setData(Qt.ItemDataRole.UserRole, backup['name'])
-            self.backup_list.addItem(item)
+        if item and QMessageBox.question(self, "Delete", f"Delete {item.text()}?") == QMessageBox.StandardButton.Yes:
+            try:
+                (BACKUP_DIR / item.text()).unlink()
+                self._refresh_backups()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", str(e))

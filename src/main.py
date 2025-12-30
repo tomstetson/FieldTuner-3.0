@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
-from ui import MainWindow
+from ui.main_window import MainWindow
 
 
 def main():
